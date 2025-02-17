@@ -4,35 +4,18 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# display(file_cstimer,"display-cstimer.json")
-# display(file_cubetime,"display-cubetime.json")
+INFORMATION_COLUMNS = {"Comment","Scramble","Date","Status"}
+TOTAL_COLUMN = "Total"
+class Metric(pd.DataFrame):
+    pass
 
-# with open(file_cubetime) as f:
-#     data = json.load(f)
-# sessionData = json.loads(data["properties"]["sessionData"])
-# display(sessionData,"display-cubetime-session.json")
-#display("cstimer_20250202_160540.txt")
+    def clean(self):
+        new =  self.astype({"Date":"datetime64[s]"}) # 1. change type of data
+        for phase in set(new.columns)-INFORMATION_COLUMNS: # 2. round the time
+            new[phase] = new[phase].apply(lambda t:round(t,ndigits=3))
+        new = new.sort_values(by="Date").reset_index(drop=True) # 3. sort by date
+        return Metric(new)
 
-
-
-class RubikStats(pd.DataFrame):
-    """
-    A subclass of pandas DataFrame with custom methods.
-    """
-    
-    def __init__(self, *args, clean=True, **kwargs):
-        super().__init__(*args, **kwargs)
-        if clean:
-            self["Time"] = self["Time"].apply(lambda t:round(t,ndigits=3))
-            self["Date"] = pd.to_datetime(self["Date"],unit="s")
-            self.sort_values(by="Date",inplace=True)
-            self.reset_index(drop=True, inplace=True)
-
-    
-    @classmethod
-    def read_csv(self,file):
-        return RubikStats(pd.read_csv(file))
-    
     CONVERT_STATUS = {0:"OK",2000:"+2",-1:"DNF"}
     @classmethod
     def read_cstimer(cls,file,session_id=1):
@@ -43,47 +26,32 @@ class RubikStats(pd.DataFrame):
         multiphases = nphases>1
         #print(nphases)
         phases_columns = [f"P{nphase+1}" for nphase in range(nphases)] if multiphases else []
-        df = pd.DataFrame(columns=["Status", "Time", *phases_columns, "Comment", "Scramble", "Date"])
+        df={column:[] for column in ["Status", TOTAL_COLUMN, *phases_columns, "Comment", "Scramble", "Date"]}
+
         for nsolve, solve in enumerate(data):
             times = solve[0]
 
-            row = {
-                "Status":cls.CONVERT_STATUS[times.pop(0)],
-                "Time":sum(times)/1000,
-                "Comment":solve[2], 
-                "Scramble":solve[1], 
-                "Date":pd.to_datetime(solve[3],unit="s"),
-            }
+            df["Status"].append(cls.CONVERT_STATUS[times.pop(0)])
+            df[TOTAL_COLUMN].append(sum(times)/1000)
+            df["Comment"].append(solve[2]), 
+            df["Scramble"].append(solve[1])
+            df["Date"].append(solve[3])
+
             
             if multiphases:
                 for phase_col,phase_time in zip(phases_columns,times):
-                    row[phase_col] = phase_time/1000
-                    
-            df.loc[nsolve] = row
-            
-        return RubikStats(df)
-                
-    def trend(self):
-        plt.plot(self.index, self["Time"], label="Time")
-        
-        #plt.xlabel('Date')
-        plt.ylabel('Time')
-        plt.title('Time Trend')
-        #plt.gcf().autofmt_xdate()
-        plt.legend()
-        plt.show()
-            
-    def add(self,*columns):
-        """Add a new column of ao or avg"""
-        for to_display in columns:
-            if "," in to_display:
-                phase,_,to_display=to_display.partition(",")
-                
+                    df[phase_col].append(phase_time/1000)
 
+        return cls(df).clean()
+                
+    def apply_metric(self,metric):
+        if metric.startswith("ao"):
+            number=metric[2:]
+            
 # Example usage
 
 # data = pd.read_csv("CubeTime - Default Session.csv")
-data = RubikStats.read_cstimer("CubeTime Export (csTimer).json")
-data.trend()
+data = Metric.read_cstimer("CubeTime Export (csTimer).json")
+#data.trend()
 print(data)
 # print(data)
