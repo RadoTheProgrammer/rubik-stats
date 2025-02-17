@@ -3,20 +3,7 @@ import json
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
-__all__ = ["RubikStats"]
 
-def display(data,file_output="display.json"):
-    if isinstance(data,str): # file
-        
-        with open(data) as f:
-            data = json.load(f)
-    
-    with open(file_output,"w") as f:
-        json.dump(data,f,indent=4)
-    webbrowser.open(f"file://{os.path.realpath(file_output)}")
-
-file_cstimer="cstimer_20250201_173705.txt"
-file_cubetime="CubeTime Export (csTimer).json"
 # display(file_cstimer,"display-cstimer.json")
 # display(file_cubetime,"display-cubetime.json")
 
@@ -33,12 +20,13 @@ class RubikStats(pd.DataFrame):
     A subclass of pandas DataFrame with custom methods.
     """
     
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, clean=True, **kwargs):
         super().__init__(*args, **kwargs)
-        #self.sort_values(by="Date",inplace=True)
-        #self["Time"] = self["Time"].apply(lambda t:round(t,ndigits=3))
-        #self["Date"] = pd.to_datetime(self["Date"])
-        #self.reset_index(drop=True, inplace=True)
+        if clean:
+            self["Time"] = self["Time"].apply(lambda t:round(t,ndigits=3))
+            self["Date"] = pd.to_datetime(self["Date"],unit="s")
+            self.sort_values(by="Date",inplace=True)
+            self.reset_index(drop=True, inplace=True)
 
     
     @classmethod
@@ -72,10 +60,7 @@ class RubikStats(pd.DataFrame):
                     row[phase_col] = phase_time/1000
                     
             df.loc[nsolve] = row
-        df.index+=1
-        df.sort_values(by="Date", inplace=True)
-        df.reset_index(drop=True, inplace=True)
-        df = df.iloc[::-1]
+            
         return RubikStats(df)
                 
     def trend(self):
