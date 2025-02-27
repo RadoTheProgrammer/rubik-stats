@@ -41,12 +41,17 @@ class Metric(pd.DataFrame):
             if multiphases:
                 for phase_col,phase_time in zip(phases_columns,times):
                     df[phase_col].append(phase_time/1000)
-
-        return cls(df).clean()
+        df = {"a":[],"b":[],"c":[]}
+        return cls(df)
                 
     def apply_metric(self,metric):
+        new = Metric(self[INFORMATION_COLUMNS])
         if metric.startswith("ao"):
-            number=metric[2:]
+            number=int(metric[2:])
+            
+            for phase in set(self.columns)-INFORMATION_COLUMNS:
+                
+                
             
 # Example usage
 
