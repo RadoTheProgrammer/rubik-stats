@@ -30,33 +30,36 @@ class Metric(pd.DataFrame):
 
         for nsolve, solve in enumerate(data):
             times = solve[0]
-
             df["Status"].append(cls.CONVERT_STATUS[times.pop(0)])
-            df[TOTAL_COLUMN].append(sum(times)/1000)
+            df[TOTAL_COLUMN].append(times[1])
             df["Comment"].append(solve[2]), 
             df["Scramble"].append(solve[1])
             df["Date"].append(solve[3])
-
             
             if multiphases:
-                for phase_col,phase_time in zip(phases_columns,times):
+                for nphase in range(1,nphases+1): # to start from 1
+                    phase_col = f"P{nphase}"
+                    phase_time = times[-1] if nphase==1 else times[-nphase]-times[-nphase+1]
                     df[phase_col].append(phase_time/1000)
-        df = {"a":[],"b":[],"c":[]}
+                    
+        #df = {"a":[],"b":[],"c":[]}
         return cls(df)
                 
     def apply_metric(self,metric):
-        new = Metric(self[INFORMATION_COLUMNS])
+        new = Metric(self)
         if metric.startswith("ao"):
-            number=int(metric[2:])
+            n=int(metric[2:])
             
             for phase in set(self.columns)-INFORMATION_COLUMNS:
+                new[phase]=self[phase].rolling(n).apply(lambda a:sum(a)/n)
+        return new
                 
                 
             
 # Example usage
 
 # data = pd.read_csv("CubeTime - Default Session.csv")
-data = Metric.read_cstimer("CubeTime Export (csTimer).json")
+data = Metric.read_cstimer("cstimer_data.txt")
 #data.trend()
 print(data)
 # print(data)
