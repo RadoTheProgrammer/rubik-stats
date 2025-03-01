@@ -12,4 +12,4 @@ def display(data,file_output="display.json"):
         json.dump(data,f,indent=4)
     webbrowser.open(f"file://{os.path.realpath(file_output)}")
     
-display("cstimer_20250227_193440.txt","display_data/cstimer_data_display.json")
+display("cstimer_data.txt","display_data/cstimer_data_display.json")
