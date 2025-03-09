@@ -125,19 +125,42 @@ class DataPhases(pd.DataFrame):
     def avg(self,n):
         return self.apply_metric(avg(n))
                 
+    def _get_metrics(self,metric_cls):
+        l = len(self)
+        metrics=[]
+        for n in (1,5,12,100,1000):
+            if n>l:
+                break
+            metrics.append(single() if n==1 else metric_cls(n))
+        return metrics
     def analyse_phase(self,phase,*metrics):
-        if not metrics:
-            pass # do later
+        if not metrics or metrics in ("ao",ao):
+            metrics = self._get_metrics(ao)
+        elif metrics in ("avg",avg):
+            metrics = self._get_metrics(avg)
         new=Phase(self[INFORMATION_COLUMNS])
         for metric in metrics:
             metric = Metric.to_metric_obj(metric)
             new[str(metric)] = metric.on_series(self[phase])
         return new
-        
+
+read_cstimer = DataPhases.read_cstimer
 class Phase(pd.DataFrame):
     @property
     def _constructor(self):
         return Phase
+    
+    def trends(self,by_date=False):
+        for column in self:
+            if column in INFORMATION_COLUMNS:
+                continue
+            plt.plot(self.Date if by_date else self.index, self[column], label=column)
+        
+        plt.xlabel('Number')
+        plt.ylabel('Time')
+        plt.legend()
+        plt.gcf().autofmt_xdate()
+        plt.show()
 # Example usage
 
 # data = pd.read_csv("CubeTime - Default Session.csv")
