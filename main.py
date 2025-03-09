@@ -125,12 +125,23 @@ class DataPhases(pd.DataFrame):
     def avg(self,n):
         return self.apply_metric(avg(n))
                 
-            
+    def analyse_phase(self,phase,*metrics):
+        if not metrics:
+            pass # do later
+        new=Phase(self[INFORMATION_COLUMNS])
+        for metric in metrics:
+            metric = Metric.to_metric_obj(metric)
+            new[str(metric)] = metric.on_series(self[phase])
+        return new
+        
+class Phase(pd.DataFrame):
+    @property
+    def _constructor(self):
+        return Phase
 # Example usage
 
 # data = pd.read_csv("CubeTime - Default Session.csv")
 data = DataPhases.read_cstimer("cstimer_data.txt")
-print(data)
-print(data.ao(5))
+print(data.analyse_phase("Total",1,5,12))
 
 # print(data)
